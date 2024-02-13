@@ -1,43 +1,64 @@
-﻿name: Continues Deployment
+﻿name: CICD
 
 on:
-  workflow_dispatch: 
-    
+  push: 
+    branches: [main]
+        
 jobs: 
-  build:
+  package-and-publish-contracts:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4.1.1
+        
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Pack
-        run: dotnet pack ./SomeLIb/SomeLIb.csproj -c Release
-      - name: Upload NuGet package to GitHub
-        uses: actions/upload-artifact@v2
-        with:
-          name: nugetPackage
-          path: ./SomeLIb/bin/Release/
           
-  release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    needs: build
-    steps:
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-          source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-        env:
-          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download NuGet package artifact
-        uses: actions/download-artifact@v1.0.0
-        with:
-          name: nugetPackage
-      - name: Publish to GitHub Packages
-        run: dotnet nuget push nugetPackage/*.nupkg
+      - name: Pack
+        run: dotnet pack SomeLIb/SomeLIb.csproj -c Release -p:RepositoryUrl=https://github.com/${{ github.repository_owner }}/NugetPublishTest -o packages
+      
+#name: Continues Deployment
+#
+#on:
+#  workflow_dispatch: 
+#    
+#jobs: 
+#  build:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#      - name: Setup .NET
+#        uses: actions/setup-dotnet@v4
+#        with:
+#          dotnet-version: 8.0.x
+#      - name: Pack
+#        run: dotnet pack ./SomeLIb/SomeLIb.csproj -c Release
+#      - name: Upload NuGet package to GitHub
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: nugetPackage
+#          path: ./SomeLIb/bin/Release/
+#          
+#  release:
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: read
+#      packages: write
+#    needs: build
+#    steps:
+#      - name: Setup .NET
+#        uses: actions/setup-dotnet@v4
+#        with:
+#          dotnet-version: 8.0.x
+#          source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+#        env:
+#          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Download NuGet package artifact
+#        uses: actions/download-artifact@v1.0.0
+#        with:
+#          name: nugetPackage
+#      - name: Publish to GitHub Packages
+#        run: dotnet nuget push nugetPackage/*.nupkg
