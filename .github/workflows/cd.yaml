@@ -5,8 +5,29 @@ on:
     branches: [main]
         
 jobs: 
-  package-and-publish-contracts:
+  generate-version:
     runs-on: ubuntu-latest
+    
+    permissions: 
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4.1.1
+        
+      - name: GitHub Tag Bump
+        uses: anothrNick/github-tag-action@1.67.0
+        id: tag_bump
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          
+    outputs: 
+      new_version: ${{ steps.tag_bump.outputs.new_tag }}
+    
+  package-and-publish-contracts:
+    
+    runs-on: ubuntu-latest
+    needs: generate-version
     
     steps:
       - uses: actions/checkout@v4.1.1
@@ -15,9 +36,20 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+          source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Pack
-        run: dotnet pack SomeLIb/SomeLIb.csproj -c Release -p:RepositoryUrl=https://github.com/${{ github.repository_owner }}/NugetPublishTest -o packages
+        run: |
+          dotnet pack SomeLIb/SomeLIb.csproj \
+          -c Release \
+          -p:PackageVersion=${{ needs.generate-version.outputs.new_version }} \
+          -p:RepositoryUrl=https://github.com/${{ github.repository_owner }}/NugetPublishTest \
+          -o packages
+          
+      - name: Publish
+        run: dotnet nuget push packages/*.nupkg
       
 #name: Continues Deployment
 #
